@@ -10,18 +10,7 @@
 http = require 'http'
 seed = require '../lib/seed'
 
-
-server 	= new http.Server(); server.listen 8081
-website	= new seed.FileServer "/Users/pevans/Sites"
-
-website.delegateRequest = (req, resp) =>
-	if req.url.indexOf('/api') is 0 then return apiHandler
-	else console.log @tranlateUrl req, resp 
-
-apiHandler = (req, resp) ->
-	message = 'hello, world!'
-	resp.writeHead 200, 
-		'content-type': 	'text/plain'
-		'content-length': 	message.length
-	resp.write message
-	resp.end()
+httpServer 	= http.Server()
+webServer 	= new seed.Seed 'webroot/development'
+httpServer.on 'request', webServer.request
+httpServer.listen 8080
