@@ -7,10 +7,46 @@
 	//
 ###
 
-http = require 'http'
-seed = require '../lib/seed'
+http 		= require 'http'
+url 		= require 'url'
+nursery 	= require '../lib/seed'
 
-httpServer 	= http.Server()
-webServer 	= new seed.Seed 'webroot/development'
-httpServer.on 'request', webServer.request
-httpServer.listen 8080
+
+# debug
+###
+
+	debugging 
+	
+###
+walk = (base, indent = "") ->
+	if base.id
+		console.log "#{indent}#{base.id}"
+		walk base.children[id], "#{indent}  " for id of base.children
+
+
+stream 	= process.stdout
+seed 	= new nursery.Seed "webroot/source", /^\/development/
+static	= new nursery.Server "webroot/source/static", /^\/static/
+
+indexReq = url: "/development/pages/index.html"
+cssReq   = url: "/development/css/standard.css"
+jsReq    = url: "/static/script/base.js"
+jadeReq  = url: "/development/pages/templates/jade/index.jade"
+stylReq  = url: "/development/css/source/stylus/_grid.styl"
+
+seed.request indexReq, stream
+seed.request cssReq, stream
+seed.request jadeReq, stream
+seed.request jsReq, stream
+
+static.request indexReq, stream
+static.request cssReq, stream
+static.request jadeReq, stream
+static.request jsReq, stream
+static.request stylReq, stream
+
+console.log "\n[seed tree]"
+walk seed
+
+console.log "\n[static tree]"
+walk static

@@ -30,14 +30,17 @@
 			@.implements Other, Another
 
 
-	@parm    objects...    Array    comprehension over the series of arguments passed 
-									as a list of objects to implement in the base object.
-									note that because implements will not copy properties
-									which already exist in the base class, the order of
-									objects passed into the function is meaningful.
+	===============================================================
+	@parm    objects...    Array    
+	---------------------------------------------------------------
+	comprehension over the series of arguments passed as a list of 
+	objects to implement in the base object. note that because 
+	keys are overwritten as prototype properties are assigned, 
+	precedence in the objects passed in is right-to-left.
+
 
 ###
 Object.prototype.implements = (objects...) ->
 	for object in objects 
 		for key of object.prototype
-			@.prototype[key] = object.prototype[key] unless key is 'implements' or @.prototype[key]
+			@.prototype[key] = object.prototype[key] #/ unless @.prototype[key]
