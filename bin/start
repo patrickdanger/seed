@@ -7,46 +7,36 @@
 	//
 ###
 
-http 		= require 'http'
-url 		= require 'url'
-nursery 	= require '../lib/seed'
-
+seeds = require '../lib/seed'
+http  = require 'http'
 
 # debug
+
 ###
 
 	debugging 
-	
+
 ###
-walk = (base, indent = "") ->
-	if base.id
-		console.log "#{indent}#{base.id}"
-		walk base.children[id], "#{indent}  " for id of base.children
+	
+walk = (base, indent = "", prop = "id") ->
+	if base[prop]
+		console.log "#{indent}#{base[prop]}"
+		walk base.children[id], "#{indent}  ", prop for id of base.children
 
 
-stream 	= process.stdout
-seed 	= new nursery.Seed "webroot/source", /^\/development/
-static	= new nursery.Server "webroot/source/static", /^\/static/
+# seed creation:
+dev    = new seeds.Seed "dev/webroot", "^\\/development\\/"
+prod   = new seeds.Seed "prod/webroot", "^\\/production\\/"
 
-indexReq = url: "/development/pages/index.html"
-cssReq   = url: "/development/css/standard.css"
-jsReq    = url: "/static/script/base.js"
-jadeReq  = url: "/development/pages/templates/jade/index.jade"
-stylReq  = url: "/development/css/source/stylus/_grid.styl"
 
-seed.request indexReq, stream
-seed.request cssReq, stream
-seed.request jadeReq, stream
-seed.request jsReq, stream
+# binding to http.Server
+#server = new http.Server(); server.listen 8080
+#server.on 'request', (req, resp) -> dev.request req, resp
+req1 = "/development/index.html"
+req2 = "/development/static/css/standard.css"
+req3 = "/development/dynamic/source/stylus/_binder.styl"
+req4 = "/development/static/js/include.js"
+req5 = "/development/dynamic/source/jade/index.jade"
+req2 = "/development/info.html"
 
-static.request indexReq, stream
-static.request cssReq, stream
-static.request jadeReq, stream
-static.request jsReq, stream
-static.request stylReq, stream
-
-console.log "\n[seed tree]"
-walk seed
-
-console.log "\n[static tree]"
-walk static
+dev.request url: req1

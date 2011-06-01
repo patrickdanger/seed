@@ -1,51 +1,44 @@
-###
-	//
-	//	seed
-	//
-###
+
 
 require './env'
-sys			= require 'sys'
-sys.url 	= require 'url'
-sys.path	= require 'path'
+path = require 'path'
 
 
-# base classes
 class Node
-	constructor: (@id, @parent = null, @children = {}) ->	
-
-
-class SelfAssembling
-	nextKey: (fullPath, partial) -> fullPath.replace(partial, '').split('/')[1]
-	getChild:              (key) -> 
-		return @ unless key 
-		@children[key] = @children[key] or new @.constructor "#{@path}/#{key}", new RegExp("#{@route.source}\/#{key}"), @
-
-
-# services
-class GenericService
-	service: "Generic"
-	serve: (stream) -> stream.write "serving #{@service} request at #{@path}\n"
 	
-class FileService
-	service: "File"
-	serve: (stream) -> stream.write "serving #{@service} request at #{@path}\n"
-
-
-# exports
-class exports.Seed extends Node
-
-	@.implements SelfAssembling, GenericService
-
-	constructor: (@path, @route, node...) -> super sys.path.basename(@path), node...
-	request:                  (req, resp) ->
-		reqPath   = sys.path.normalize(sys.url.parse(req.url).pathname)
-		fullPath  = sys.path.normalize(reqPath.replace(@route, @path))
-
-		if reqPath.search(@route) > -1
-			delegate = @getChild @nextKey fullPath, @path
-			if delegate is @ then @serve resp else delegate.request req, resp	
+	constructor: (@id, @parent = null, @children = {}) ->
 	
+	
+class SeedNode
+	
+	getChild: (key, constructor = @.constructor, childArgs...)  ->
+		return @             unless key
+		childArgs      = [@] unless childArgs.length > 0
+		@children[key] = @children[key] or new @.constructor key, childArgs...
+		
 
-class exports.Server extends exports.Seed
-	@.implements FileService
+class PathNode
+	
+	path:           -> path.join @parent?.path(), @id
+	nextKey: (path) ->
+		tokens = path.replace( @path(), '' ).split "/"
+		return tokens[1] if tokens[0] is ''
+		return tokens[0]
+
+
+class RouteNode 
+	
+	route:            -> new RegExp @route
+	rebase:    (path) -> @path
+	nextRoute: (path) -> @route
+		
+		
+class Server extends Node
+	
+	@.implements SeedNode, PathNode, RouteNode
+	
+	constructor: (id, @route, nodeArgs...) -> super id, nodeArgs...
+	getChild:    (key, route)              -> super key, null, route or @nextRoute @path()
+		
+
+ 
