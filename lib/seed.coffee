@@ -1,7 +1,8 @@
 
 
 require './env'
-path = require 'path'
+sys      = require 'sys'
+sys.path = require 'path'
 
 
 class Node
@@ -9,18 +10,18 @@ class Node
 	constructor: (@id, @parent = null, @children = {}) ->
 	
 	
-class SeedNode
+class SeedNode extends Node
 	
-	getChild: (key, constructor = @.constructor, childArgs...)  ->
+	getChild: (key, ctor = @.constructor, childArgs...)  ->
 		return @             unless key
 		childArgs      = [@] unless childArgs.length > 0
-		@children[key] = @children[key] or new @.constructor key, childArgs...
+		@children[key] = @children[key] or new ctor key, childArgs...
 		
 
 class PathNode
 	
-	path:           -> path.join @parent?.path(), @id
-	nextKey: (path) ->
+	path:               -> sys.path.join @parent?.path(), @id
+	nextPathKey: (path) ->
 		tokens = path.replace( @path(), '' ).split "/"
 		return tokens[1] if tokens[0] is ''
 		return tokens[0]
@@ -28,17 +29,19 @@ class PathNode
 
 class RouteNode 
 	
-	route:            -> new RegExp @route
-	rebase:    (path) -> @path
-	nextRoute: (path) -> @route
+	route:               -> (@parent?.route() or "") + @routeKey
+	match:        (path) -> new RegExp(@route()).test path
+	rebase:       (path) -> @path
+	nextRouteKey: (path) -> 
+		tokens = path.replace( @path(), '' ).split "/"
+		return tokens[1] if tokens[0] is ''
+		return tokens[0]
 		
 		
-class Server extends Node
+class Server extends SeedNode
 	
-	@.implements SeedNode, PathNode, RouteNode
-	
-	constructor: (id, @route, nodeArgs...) -> super id, nodeArgs...
-	getChild:    (key, route)              -> super key, null, route or @nextRoute @path()
-		
+	@.implements PathNode, RouteNode
 
- 
+	constructor: (id, @routeKey, nodeArgs...)               -> super id, nodeArgs...
+	getChild:    (key, routeKey = "")                       -> super key, Server, routeKey, @
+
