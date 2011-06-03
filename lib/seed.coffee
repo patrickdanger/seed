@@ -29,9 +29,10 @@ class PathNode
 
 class RouteNode 
 	
-	route:               -> (@parent?.route() or "") + @routeKey
-	match:        (path) -> new RegExp(@route()).test path
-	rebase:       (path) -> @path
+	route:               -> (@parent?.route() or "") + (@routeKey or "[^/]*/?")		#/ return string route
+	re:                  -> new RegExp @route()										#/ return RegExp route
+	match:        (path) -> @re().test path											#/ test route against path
+	rebase:       (path) -> sys.path.join @path(), (path.replace @re(), '')			#/ rebase path to root
 	nextRouteKey: (path) -> 
 		tokens = path.replace( @path(), '' ).split "/"
 		return tokens[1] if tokens[0] is ''
@@ -45,3 +46,25 @@ class Server extends SeedNode
 	constructor: (id, @routeKey, nodeArgs...)               -> super id, nodeArgs...
 	getChild:    (key, routeKey = "")                       -> super key, Server, routeKey, @
 
+
+
+
+###
+
+	debugging 
+	
+###
+
+walk = (base, prop = "id", indent = "") ->
+	if base[prop]
+		console.log "#{indent}#{base[prop]}"
+		walk base.children[id], prop, "#{indent}  " for id of base.children
+
+
+dev 	= new Server "webroot/dev", "^/dev/"
+static 	= dev.getChild "static"
+css		= static.getChild "css"
+
+console.log css.rebase "/dev/static/css/standard/modules/hello.css"
+
+#walk dev
