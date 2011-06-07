@@ -41,6 +41,12 @@
 
 ###
 Object.prototype.implements = (objects...) ->
-	for object in objects 
+	for object in objects
 		for key of object.prototype
-			@.prototype[key] = object.prototype[key] #/ unless @.prototype[key]
+			@.prototype[key] = object.prototype[key] unless @.prototype[key]
+
+
+Object.prototype.implement  = (objects..., props = []) ->
+	for object in objects
+		for key of object.prototype
+			@[key] = object.prototype[key] if key in props

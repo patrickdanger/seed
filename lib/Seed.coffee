@@ -1,9 +1,10 @@
 
-
-require './env'
 sys      = require 'sys'
 sys.path = require 'path'
 sys.url  = require 'url'
+
+require    './env'
+
 
 #//
 #	Node
@@ -21,7 +22,7 @@ class Node
 	#	a reference to @parent and @children.
 	#/
 	constructor: (@id, @parent = null, @children = {}) ->
-	
+
 	#/
 	#	toString
 	#
@@ -33,6 +34,7 @@ class Node
 		if @[prop]
 			console.log "#{indent}#{@[prop]}"
 			@.children[id].toString prop, "#{indent}  " for id of @.children
+
 
 #//
 #	SeedNode
@@ -71,7 +73,7 @@ class PathNode
 	#	return full path from Node tree root to this fragment.
 	#/
 	path:                -> sys.path.join @parent?.path(), @id
-	
+
 	#/
 	#	matchPath
 	#
@@ -79,7 +81,7 @@ class PathNode
 	#	from the Node tree root to this fragment.
 	#/
 	matchPath:    (path) -> path is @path()
-	
+
 	#/
 	#	tokenizePath
 	#
@@ -87,7 +89,7 @@ class PathNode
 	#	should correspond to a path fragment).
 	#/
 	tokenizePath: (path) -> path.split "/"
-	
+
 	#/
 	#	nextPathKey
 	#
@@ -98,6 +100,7 @@ class PathNode
 		tokens = @tokenizePath path.replace( @path(), '' )
 		return tokens[1] if tokens[0] is ''
 		return tokens[0]
+
 
 #//
 #	RouteNode										// IMPLEMENTABLE
@@ -121,7 +124,7 @@ class RouteNode
 	#	route from Node tree root to this fragment.
 	#/
 	re:                  -> new RegExp @route()
-	
+
 	#/
 	#	rebase (relies on PathNode.path)
 	#	
@@ -130,7 +133,7 @@ class RouteNode
 	#	this Node path (requires PathNode.path).
 	#/
 	rebase:       (path) -> sys.path.join @path(), (path.replace @re(), '')
-	
+
 	#/
 	#	matchRoute
 	#
@@ -178,21 +181,6 @@ class ServerNode extends SeedNode
 	getChild:    (key, routeKey = "")                       -> super key, @constructor, routeKey, @
 
 
-
-class GenericService
-	
-	service:     (req, resp) -> registry.bindService @ unless @serviceType
-
-		
-
-class ServiceRegistry
-	
-	constructor:   (service = {}) ->
-	addService:    (key, service) ->
-	removeService: (key)          ->
-	bindService:   (node)         ->
-		
-
 #//
 #	Seed
 #	extends ServerNode
@@ -202,8 +190,6 @@ class ServiceRegistry
 #	responses.
 #//
 class Seed extends ServerNode
-	
-	@.implements GenericService
 
 	#/
 	#	request
@@ -215,11 +201,58 @@ class Seed extends ServerNode
 	request:  (req, resp) ->
 		{pathname}       = sys.url.parse req.url
 		return             unless @matchRoute pathname
-		
+
 		delegate         = @getChild @nextPathKey @rebase pathname
 		if delegate is @   then @service req, resp 
 		else               delegate.request req, resp 
+
+	service:  (req, resp) -> console.log "servicing request #{req} at #{@path()}"
+
+
+#//
+#
+#//
+class ServiceRegistry
+
+	constructor: (@services = {}) -> 
+
+	register:    (s)       -> @services[s.prototype.name] = s
+	unregister:  (s)       -> @services[s.prototype.name] = null
+	service:     (name)    -> @services[name]
+	match:       (type)    -> @services[key] for key of @services when @services[key].prototype.name and RegExp(@services[key].prototype.match).test type
+	reimplement: (o, type) -> o.implement service, ['name', 'match', 'serve'] for service in @match type
 		
+
+ServiceRegistry = new ServiceRegistry()
+
+
+class Service
+
+	name:  "stub"
+	match: "$^"
+
+	ServiceRegistry.register @
+
+	serve: (stream) -> 
+
+
+class GenericService
+
+	name:  "generic"
+	match: ".*"
+
+	ServiceRegistry.register @
+
+	serve: (stream) -> stream.write "I am a #{@name} service."
+
+
+class DirectoryService
+	
+	name:  "directory"
+	match: "^[^\.]"
+	
+	ServiceRegistry.register @
+
 
 
 ###
@@ -228,6 +261,7 @@ class Seed extends ServerNode
 
 ###
 
+###
 dev    = new Seed  "webroot", "^/development/"
 
 reqs = [
@@ -235,7 +269,10 @@ reqs = [
 	{ url: "/development/static/js/standard.js" }
 	{ url: "/development/source/index.html" }
 	{ url: "/development/" }
+	{ url: "/production/sourcecode/html/index.htm" }
+	{ url: "/production/stage/css/integral.css" }
 ]
 
 dev.request req for req in reqs
 dev.toString()
+###
