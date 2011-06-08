@@ -1,9 +1,76 @@
 
-sys      = require 'sys'
-sys.path = require 'path'
-sys.url  = require 'url'
+sys             = require 'sys'
+sys.path        = require 'path'
+sys.url         = require 'url'
 
-require    './env'
+require           './env'
+
+
+#//
+#	ServiceRegistry
+#
+#	object that handles registrations for new service types as well
+#	as matching file types to the correct services.  self-implementing
+#	services can use the reimplement method to assume the correct
+#	service profile.
+#//
+class ServiceRegistry
+
+	constructor: (@services = {}) -> 
+
+	register:    (s)       -> @services[s.prototype.name] = s
+	unregister:  (s)       -> @services[s.prototype.name] = null
+	service:     (name)    -> @services[name]
+	match:       (type)    -> @services[key] for key of @services when @services[key].prototype.name and RegExp(@services[key].prototype.match).test type
+	reimplement: (o, type) -> o.implement service, ['name', 'match', 'serve'] for service in @match type
+
+ServiceRegistry = new ServiceRegistry()
+
+#//
+#	Service
+#
+#	basic service object, designed to automatically reimplement itself
+#	when the serve method is called.  because the match variable won't
+#	ever match a type, we don't have to worry about cyclic calls.
+#//
+class Service
+
+	name:  "stub"
+	match: "$^"
+
+	ServiceRegistry.register @
+
+	serve: (context, stream) -> ServiceRegistry.reimplement @, @id; @serve context, stream
+
+
+#//
+#	GenericService
+#	
+#	basic service designed to capture requests not matched by any other
+#	registered service types.
+#//
+class GenericService
+
+	name:  "generic"
+	match: ".*"
+
+	ServiceRegistry.register @
+
+	serve: (context, stream) -> stream.write "I am a #{@name} service.\n"
+
+#//
+#	DirectoryService
+#
+#	output directory information (currently unimplemented), but
+#	could be useful for stats collection or for overriding in a
+#	custom implementation.
+#//
+class DirectoryService
+
+	name:  "directory"
+	match: "^[^\.]"
+
+	ServiceRegistry.register @
 
 
 #//
@@ -191,6 +258,8 @@ class ServerNode extends SeedNode
 #//
 class Seed extends ServerNode
 
+	@.implements Service
+
 	#/
 	#	request
 	#	
@@ -203,56 +272,8 @@ class Seed extends ServerNode
 		return             unless @matchRoute pathname
 
 		delegate         = @getChild @nextPathKey @rebase pathname
-		if delegate is @   then @service req, resp 
-		else               delegate.request req, resp 
-
-	service:  (req, resp) -> console.log "servicing request #{req} at #{@path()}"
-
-
-#//
-#
-#//
-class ServiceRegistry
-
-	constructor: (@services = {}) -> 
-
-	register:    (s)       -> @services[s.prototype.name] = s
-	unregister:  (s)       -> @services[s.prototype.name] = null
-	service:     (name)    -> @services[name]
-	match:       (type)    -> @services[key] for key of @services when @services[key].prototype.name and RegExp(@services[key].prototype.match).test type
-	reimplement: (o, type) -> o.implement service, ['name', 'match', 'serve'] for service in @match type
-		
-
-ServiceRegistry = new ServiceRegistry()
-
-
-class Service
-
-	name:  "stub"
-	match: "$^"
-
-	ServiceRegistry.register @
-
-	serve: (stream) -> 
-
-
-class GenericService
-
-	name:  "generic"
-	match: ".*"
-
-	ServiceRegistry.register @
-
-	serve: (stream) -> stream.write "I am a #{@name} service."
-
-
-class DirectoryService
-	
-	name:  "directory"
-	match: "^[^\.]"
-	
-	ServiceRegistry.register @
-
+		if delegate is @   then @serve req, resp 
+		else               delegate.request req, resp
 
 
 ###
@@ -261,7 +282,6 @@ class DirectoryService
 
 ###
 
-###
 dev    = new Seed  "webroot", "^/development/"
 
 reqs = [
@@ -273,6 +293,5 @@ reqs = [
 	{ url: "/production/stage/css/integral.css" }
 ]
 
-dev.request req for req in reqs
+dev.request req, process.stdout for req in reqs
 dev.toString()
-###
