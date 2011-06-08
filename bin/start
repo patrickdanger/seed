@@ -7,36 +7,34 @@
 	//
 ###
 
-seeds = require '../lib/seed'
+seed  = require '../lib/Seed'
 http  = require 'http'
 
-# debug
+###
+
+	debugging
 
 ###
 
-	debugging 
+dev = new seed.Seed "webroot", "^/development/"
+io  = new http.Server()
+io.on 'request', dev.request
+
+io.listen 8080
 
 ###
-	
-walk = (base, indent = "", prop = "id") ->
-	if base[prop]
-		console.log "#{indent}#{base[prop]}"
-		walk base.children[id], "#{indent}  ", prop for id of base.children
+dev    = new seeds.Seed  "webroot", "^/development/"
 
+reqs = [
+	{ url: "/development/static/css/standard.css" }
+	{ url: "/development/static/js/standard.js" }
+	{ url: "/development/source/index.html" }
+	{ url: "/development/source/js"}
+	{ url: "/development/" }
+	{ url: "/production/sourcecode/html/index.htm" }
+	{ url: "/production/stage/css/integral.css" }
+]
 
-# seed creation:
-dev    = new seeds.Seed "dev/webroot", "^\\/development\\/"
-prod   = new seeds.Seed "prod/webroot", "^\\/production\\/"
-
-
-# binding to http.Server
-#server = new http.Server(); server.listen 8080
-#server.on 'request', (req, resp) -> dev.request req, resp
-req1 = "/development/index.html"
-req2 = "/development/static/css/standard.css"
-req3 = "/development/dynamic/source/stylus/_binder.styl"
-req4 = "/development/static/js/include.js"
-req5 = "/development/dynamic/source/jade/index.jade"
-req2 = "/development/info.html"
-
-dev.request url: req1
+dev.request req, process.stdout for req in reqs
+dev.toString()
+###

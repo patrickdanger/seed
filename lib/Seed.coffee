@@ -4,27 +4,8 @@ sys.path        = require 'path'
 sys.url         = require 'url'
 
 require           './env'
+ServiceRegistry = require './ServiceRegistry'
 
-
-#//
-#	ServiceRegistry
-#
-#	object that handles registrations for new service types as well
-#	as matching file types to the correct services.  self-implementing
-#	services can use the reimplement method to assume the correct
-#	service profile.
-#//
-class ServiceRegistry
-
-	constructor: (@services = {}) -> 
-
-	register:    (s)       -> @services[s.prototype.name] = s
-	unregister:  (s)       -> @services[s.prototype.name] = null
-	service:     (name)    -> @services[name]
-	match:       (type)    -> @services[key] for key of @services when @services[key].prototype.name and RegExp(@services[key].prototype.match).test type
-	reimplement: (o, type) -> o.implement service, ['name', 'match', 'serve'] for service in @match type
-
-ServiceRegistry = new ServiceRegistry()
 
 #//
 #	Service
@@ -56,7 +37,7 @@ class GenericService
 
 	ServiceRegistry.register @
 
-	serve: (context, stream) -> stream.write "I am a #{@name} service.\n"
+	serve: (context, stream) -> stream.write "I am a #{@name} service for #{@id}.\n"
 
 #//
 #	DirectoryService
@@ -72,6 +53,15 @@ class DirectoryService
 
 	ServiceRegistry.register @
 
+
+class FileService
+	
+	name: "file"
+	match: "\.(html|css|js)$"
+
+	ServiceRegistry.register @
+	
+	serve: (context, stream) -> stream.write "I am a #{@name} service for #{@id}.\n"
 
 #//
 #	Node
@@ -256,7 +246,7 @@ class ServerNode extends SeedNode
 #	a self-assembling server, Seed supports posting requests and 
 #	responses.
 #//
-class Seed extends ServerNode
+class exports.Seed extends ServerNode
 
 	@.implements Service
 
@@ -274,24 +264,3 @@ class Seed extends ServerNode
 		delegate         = @getChild @nextPathKey @rebase pathname
 		if delegate is @   then @serve req, resp 
 		else               delegate.request req, resp
-
-
-###
-
-	debugging 
-
-###
-
-dev    = new Seed  "webroot", "^/development/"
-
-reqs = [
-	{ url: "/development/static/css/standard.css" }
-	{ url: "/development/static/js/standard.js" }
-	{ url: "/development/source/index.html" }
-	{ url: "/development/" }
-	{ url: "/production/sourcecode/html/index.htm" }
-	{ url: "/production/stage/css/integral.css" }
-]
-
-dev.request req, process.stdout for req in reqs
-dev.toString()
