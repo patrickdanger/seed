@@ -246,7 +246,7 @@ class ServerNode extends SeedNode
 #	a self-assembling server, Seed supports posting requests and 
 #	responses.
 #//
-class exports.Seed extends ServerNode
+class exports.Server extends ServerNode
 
 	@.implements Service
 
@@ -258,9 +258,9 @@ class exports.Seed extends ServerNode
 	#	then serving the request at the leaf.
 	#/
 	request:  (req, resp) ->
-		{pathname}       = sys.url.parse req.url
-		return             unless @matchRoute pathname
+		{pathname}        = sys.url.parse req.url
+		throw new Error "#{pathname} is not on my route" unless @matchRoute pathname
 
-		delegate         = @getChild @nextPathKey @rebase pathname
-		if delegate is @   then @serve req, resp 
-		else               delegate.request req, resp
+		delegate          = @getChild @nextPathKey @rebase pathname
+		if delegate is @    then @serve req, resp 
+		else                delegate.request req, resp

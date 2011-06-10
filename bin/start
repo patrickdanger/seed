@@ -16,14 +16,27 @@ http  = require 'http'
 
 ###
 
-dev = new seed.Seed "webroot", "^/development/"
-io  = new http.Server()
-io.on 'request', dev.request
+io   = new http.Server(); io.listen 8080
+dev  = new seed.Server "webroot/dev", "^/development/"
+prod = new seed.Server "webroot/prod", "^/production/"
 
-io.listen 8080
+io.on 'request', (req, resp) ->
+	try	
+		dev.request req, resp 
+	catch e
+		resp.writeHead 500; resp.end()
+		console.log "dev: #{e}"
+
+io.on 'request', (req, resp) ->
+	try	
+		prod.request req, resp 
+	catch e
+		resp.writeHead 500; resp.end()
+		console.log "prod: #{e}"
+
 
 ###
-dev    = new seeds.Seed  "webroot", "^/development/"
+dev    = new seed.Server  "webroot", "^/development/"
 
 reqs = [
 	{ url: "/development/static/css/standard.css" }
