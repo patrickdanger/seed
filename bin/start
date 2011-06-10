@@ -8,13 +8,15 @@
 ###
 
 seed  = require '../lib/Seed'
-http  = require 'http'
 
 ###
 
 	debugging
 
 ###
+
+###
+http  = require 'http'
 
 io   = new http.Server(); io.listen 8080
 dev  = new seed.Server "webroot/dev", "^/development/"
@@ -33,9 +35,9 @@ io.on 'request', (req, resp) ->
 	catch e
 		resp.writeHead 500; resp.end()
 		console.log "prod: #{e}"
-
-
 ###
+
+
 dev    = new seed.Server  "webroot", "^/development/"
 
 reqs = [
@@ -50,4 +52,3 @@ reqs = [
 
 dev.request req, process.stdout for req in reqs
 dev.toString()
-###

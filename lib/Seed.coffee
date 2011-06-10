@@ -2,66 +2,9 @@
 sys             = require 'sys'
 sys.path        = require 'path'
 sys.url         = require 'url'
-
+Services		= require './Services'
 require           './env'
-ServiceRegistry = require './ServiceRegistry'
 
-
-#//
-#	Service
-#
-#	basic service object, designed to automatically reimplement itself
-#	when the serve method is called.  because the match variable won't
-#	ever match a type, we don't have to worry about cyclic calls.
-#//
-class Service
-
-	name:  "stub"
-	match: "$^"
-
-	ServiceRegistry.register @
-
-	serve: (context, stream) -> ServiceRegistry.reimplement @, @id; @serve context, stream
-
-
-#//
-#	GenericService
-#	
-#	basic service designed to capture requests not matched by any other
-#	registered service types.
-#//
-class GenericService
-
-	name:  "generic"
-	match: ".*"
-
-	ServiceRegistry.register @
-
-	serve: (context, stream) -> stream.write "I am a #{@name} service for #{@id}.\n"
-
-#//
-#	DirectoryService
-#
-#	output directory information (currently unimplemented), but
-#	could be useful for stats collection or for overriding in a
-#	custom implementation.
-#//
-class DirectoryService
-
-	name:  "directory"
-	match: "^[^\.]"
-
-	ServiceRegistry.register @
-
-
-class FileService
-	
-	name: "file"
-	match: "\.(html|css|js)$"
-
-	ServiceRegistry.register @
-	
-	serve: (context, stream) -> stream.write "I am a #{@name} service for #{@id}.\n"
 
 #//
 #	Node
@@ -248,7 +191,7 @@ class ServerNode extends SeedNode
 #//
 class exports.Server extends ServerNode
 
-	@.implements Service
+	@.implements Services.Service
 
 	#/
 	#	request
@@ -258,9 +201,9 @@ class exports.Server extends ServerNode
 	#	then serving the request at the leaf.
 	#/
 	request:  (req, resp) ->
-		{pathname}        = sys.url.parse req.url
-		throw new Error "#{pathname} is not on my route" unless @matchRoute pathname
+		{pathname}       = sys.url.parse req.url
+		return             unless @matchRoute pathname
 
-		delegate          = @getChild @nextPathKey @rebase pathname
-		if delegate is @    then @serve req, resp 
-		else                delegate.request req, resp
+		delegate         = @getChild @nextPathKey @rebase pathname
+		if delegate is @   then @serve req, resp 
+		else               delegate.request req, resp
